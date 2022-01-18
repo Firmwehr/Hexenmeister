@@ -113,7 +113,7 @@ def run(i: Optional[Path], o: Optional[Path]) -> Dict[str, Any]:
         try:
             values.append(run_once(istr, ostr))
         except InvalidOutputException as e:
-            return {"error": f"Invalid output\n\nRequired:\n{e.required}\n\nActual:\n{e.actual}"}
+            return {"error": f"Invalid output\n\nRequired:\n{e.required!r}\n\nActual:\n{e.actual!r}"}
         except Exception:
             return {"error": f"Something went wrong during execution:\n{traceback.format_exc()}"}
         if time.time() - t0 > TIME_PER_BENCH:
