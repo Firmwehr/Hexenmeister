@@ -134,7 +134,7 @@ def bench(result: Dict[str, Any], testrepo: Path, name: str, file: File):
             result[f"{name}.{n}"] = run(i.path, i.out)
     else:
         eprint(f"==> Running {name}")
-        result[name] = run(None, file.out)
+        result[name] = {"time": run(None, file.out)}
 
 def main():
     parser = argparse.ArgumentParser()
@@ -147,19 +147,19 @@ def main():
     subprocess.run([args.testrepo / "build"],
             stdout=sys.stderr, stderr=sys.stderr, check=True)
 
-    result = {"small": {}, "big": {}}
+    result = {}
 
     if not args.no_small:
         small = load_files(OWN_DIR / "exec")
         eprint(f"==> Running tests for {len(small)} small files")
         for name, file in sorted(small.items()):
-            bench(result["small"], args.testrepo, name, file)
+            bench(result, args.testrepo, f"small.{name}", file)
 
     # if not args.no_big:
     #     big = load_files(OWN_DIR / "exec" / "big")
     #     eprint(f"==> Running tests for {len(big)} big files")
     #     for name, file in sorted(big.items()):
-    #         bench(result["big"], args.testrepo, name, file)
+    #         bench(result, args.testrepo, f"big.{name}", file)
 
     print(json.dumps(result))
 
