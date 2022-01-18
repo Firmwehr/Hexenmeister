@@ -87,7 +87,7 @@ def run_once(i: str, o: Optional[str]) -> float:
             text=True, capture_output=CAPTURE_OUTPUT, check=True)
     t2 = time.time()
     if o is not None:
-        if o != result.stdout:
+        if o.strip() != result.stdout.strip():
             raise InvalidOutputException(o, result.stdout)
     return t2 - t1
 
