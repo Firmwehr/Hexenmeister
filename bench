@@ -120,7 +120,7 @@ def bench(result: Dict[str, Any], testrepo: Path, name: str, file: File):
         capture_output=CAPTURE_OUTPUT, check=True)
 
     if file.inputs:
-        for n, i in file.inputs.items():
+        for n, i in sorted(file.inputs.items()):
             eprint(f"  Running input {n}")
             result[f"{name}.{n}"] = run(i.path, i.out)
     else:
