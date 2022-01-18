@@ -60,6 +60,8 @@ def load_files(at: Path) -> Dict[str, File]:
         elif re.fullmatch(r".*\.out", name):
             file = files.setdefault(base(path), File())
             file.out = path
+        else:
+            raise Exception(f"No idea what kind of file {name!r} is")
 
     # Quick sanity-check
     for name, file in sorted(files.items()):
@@ -112,37 +114,43 @@ def run(i: Optional[Path], o: Optional[Path]) -> Dict[str, Any]:
 
 def bench(result: Dict[str, Any], testrepo: Path, name: str, file: File):
     # Produces a.out in current directory
-    eprint(f"Building {name}")
     assert file.path is not None
+    eprint(f"Building {name}")
     subprocess.run([testrepo / "run", file.path],
         capture_output=CAPTURE_OUTPUT, check=True)
 
     if file.inputs:
         for n, i in file.inputs.items():
-            eprint(f"Running input {n} for {name}")
+            eprint(f"  Running input {n}")
             result[f"{name}.{n}"] = run(i.path, i.out)
     else:
-        eprint(f"Running {name}")
+        eprint("  Running")
         result[name] = run(None, file.out)
 
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("testrepo", type=Path)
+    parser.add_argument("--no-small", action="store_true")
+    parser.add_argument("--no-big", action="store_true")
     args = parser.parse_args()
 
-    eprint("Running compiler build script")
+    eprint("==> Running compiler build script")
     subprocess.run([args.testrepo / "build"],
         capture_output=CAPTURE_OUTPUT, check=True)
 
     result = {"small": {}, "big": {}}
 
-    small = load_files(OWN_DIR / "exec")
-    for name, file in sorted(small.items()):
-        bench(result["small"], args.testrepo, name, file)
+    if not args.no_small:
+        small = load_files(OWN_DIR / "exec")
+        eprint(f"==> Running tests for {len(small)} small files")
+        for name, file in sorted(small.items()):
+            bench(result["small"], args.testrepo, name, file)
 
-    big = load_files(OWN_DIR / "exec" / "big")
-    for name, file in sorted(big.items()):
-        bench(result["big"], args.testrepo, name, file)
+    if not args.no_big:
+        big = load_files(OWN_DIR / "exec" / "big")
+        eprint(f"==> Running tests for {len(big)} big files")
+        for name, file in sorted(big.items()):
+            bench(result["big"], args.testrepo, name, file)
 
     print(json.dumps(result))
 
