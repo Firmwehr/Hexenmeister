@@ -146,11 +146,11 @@ def main():
         for name, file in sorted(small.items()):
             bench(result["small"], args.testrepo, name, file)
 
-    if not args.no_big:
-        big = load_files(OWN_DIR / "exec" / "big")
-        eprint(f"==> Running tests for {len(big)} big files")
-        for name, file in sorted(big.items()):
-            bench(result["big"], args.testrepo, name, file)
+    # if not args.no_big:
+    #     big = load_files(OWN_DIR / "exec" / "big")
+    #     eprint(f"==> Running tests for {len(big)} big files")
+    #     for name, file in sorted(big.items()):
+    #         bench(result["big"], args.testrepo, name, file)
 
     print(json.dumps(result))
 
