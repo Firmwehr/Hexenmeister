@@ -117,7 +117,7 @@ def bench(result: Dict[str, Any], testrepo: Path, name: str, file: File):
     assert file.path is not None
     eprint(f"Building {name}")
     subprocess.run([testrepo / "run", file.path],
-        capture_output=CAPTURE_OUTPUT, check=True)
+            stdout=sys.stderr, stderr=sys.stderr, check=True)
 
     if file.inputs:
         for n, i in sorted(file.inputs.items()):
@@ -136,7 +136,7 @@ def main():
 
     eprint("==> Running compiler build script")
     subprocess.run([args.testrepo / "build"],
-        capture_output=CAPTURE_OUTPUT, check=True)
+            stdout=sys.stderr, stderr=sys.stderr, check=True)
 
     result = {"small": {}, "big": {}}
 
