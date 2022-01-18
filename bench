@@ -6,6 +6,7 @@ import re
 import subprocess
 import sys
 import time
+import traceback
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, Optional
@@ -65,13 +66,13 @@ def load_files(at: Path) -> Dict[str, File]:
 
     # Quick sanity-check
     for name, file in sorted(files.items()):
-        assert file.path is not None
+        assert file.path is not None, "source file missing"
         if file.out is not None:
-            assert not file.inputs
+            assert not file.inputs, "out file and input file both present"
         if file.inputs:
-            assert not file.out
+            assert not file.out, "out file and input file both present"
         for i in file.inputs.values():
-            assert i.path is not None
+            assert i.path is not None, "input file missing"
 
     return files
 
@@ -81,7 +82,7 @@ def run_once(i: str, o: Optional[str]) -> float:
             text=True, capture_output=CAPTURE_OUTPUT, check=True)
     t2 = time.time()
     if o is not None:
-        assert o == result.stdout
+        assert o == result.stdout, "incorrect output"
     return t2 - t1
 
 def run(i: Optional[Path], o: Optional[Path]) -> Dict[str, Any]:
@@ -105,8 +106,8 @@ def run(i: Optional[Path], o: Optional[Path]) -> Dict[str, Any]:
     for _ in range(ITERATIONS_PER_BENCH):
         try:
             values.append(run_once(istr, ostr))
-        except Exception as e:
-            return {"error": f"Something went wrong during execution:\n\n{e}\n\n{e!r}"}
+        except Exception:
+            return {"error": f"Something went wrong during execution:\n{traceback.format_exc()}"}
         if time.time() - t0 > TIME_PER_BENCH:
             break
 
@@ -114,7 +115,7 @@ def run(i: Optional[Path], o: Optional[Path]) -> Dict[str, Any]:
 
 def bench(result: Dict[str, Any], testrepo: Path, name: str, file: File):
     # Produces a.out in current directory
-    assert file.path is not None
+    assert file.path is not None, "source file missing" # Only here for mypy
     eprint(f"==> Building {name}")
     subprocess.run([testrepo / "run", file.path],
             stdout=sys.stderr, stderr=sys.stderr, check=True)
