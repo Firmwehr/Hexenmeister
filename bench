@@ -115,16 +115,16 @@ def run(i: Optional[Path], o: Optional[Path]) -> Dict[str, Any]:
 def bench(result: Dict[str, Any], testrepo: Path, name: str, file: File):
     # Produces a.out in current directory
     assert file.path is not None
-    eprint(f"Building {name}")
+    eprint(f"==> Building {name}")
     subprocess.run([testrepo / "run", file.path],
             stdout=sys.stderr, stderr=sys.stderr, check=True)
 
     if file.inputs:
         for n, i in sorted(file.inputs.items()):
-            eprint(f"  Running input {n}")
+            eprint(f"==> Running input {n} for {name}")
             result[f"{name}.{n}"] = run(i.path, i.out)
     else:
-        eprint("  Running")
+        eprint(f"==> Running {name}")
         result[name] = run(None, file.out)
 
 def main():
