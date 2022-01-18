@@ -106,7 +106,7 @@ def run(i: Optional[Path], o: Optional[Path]) -> Dict[str, Any]:
         try:
             values.append(run_once(istr, ostr))
         except Exception as e:
-            return {"error": f"Something went wrong during execution:\n{e}"}
+            return {"error": f"Something went wrong during execution:\n\n{e}\n\n{e!r}"}
         if time.time() - t0 > TIME_PER_BENCH:
             break
 
