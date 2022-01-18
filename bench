@@ -131,7 +131,7 @@ def bench(result: Dict[str, Any], testrepo: Path, name: str, file: File):
     if file.inputs:
         for n, i in sorted(file.inputs.items()):
             eprint(f"==> Running input {n} for {name}")
-            result[f"{name}.{n}"] = run(i.path, i.out)
+            result[f"{name}.{n}"] = {"time": run(i.path, i.out)}
     else:
         eprint(f"==> Running {name}")
         result[name] = {"time": run(None, file.out)}
