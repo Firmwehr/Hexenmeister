@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+
+rm -rf tmp/
+rm -rf exec/
+git clone --depth=1 https://git.scc.kit.edu/IPDSnelting/mjtest-tests.git tmp/
+mv tmp/exec/ .
+rm exec/.keep
+rm -rf tmp/

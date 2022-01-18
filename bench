@@ -1,0 +1,150 @@
+#!/usr/bin/env python3
+
+import argparse
+import json
+import re
+import subprocess
+import sys
+import time
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Any, Dict, Optional
+
+OWN_DIR: Path = Path(__file__).resolve().parent
+CAPTURE_OUTPUT = True # Turn off for debugging
+
+# Whichever comes first
+TIME_PER_BENCH = 10.0 # seconds
+ITERATIONS_PER_BENCH = 100
+
+def eprint(s: str):
+    print(s, file=sys.stderr)
+
+class Input:
+    def __init__(self):
+        self.path: Optional[Path] = None
+        self.out: Optional[Path] = None
+
+class File:
+    def __init__(self):
+        self.path: Optional[Path] = None
+        self.out: Optional[Path] = None
+        self.inputs: Dict[int, Input] = {}
+
+def base(path: Path) -> str:
+    return path.name.split(".")[0]
+
+def load_files(at: Path) -> Dict[str, File]:
+    files: Dict[str, File] = {}
+
+    for path in at.iterdir():
+        if not path.is_file():
+            continue
+
+        name = path.name
+        if name == ".keep":
+            pass
+        elif re.fullmatch(r".*\.(java|mj)", name):
+            file = files.setdefault(base(path), File())
+            file.path = path
+        elif match := re.fullmatch(r".*\.(\d+)\.inputc", name):
+            file = files.setdefault(base(path), File())
+            n = int(match.group(1))
+            i = file.inputs.setdefault(n, Input())
+            i.path = path
+        elif match := re.fullmatch(r".*\.(\d+)\.inputc.out", name):
+            file = files.setdefault(base(path), File())
+            n = int(match.group(1))
+            i = file.inputs.setdefault(n, Input())
+            i.out = path
+        elif re.fullmatch(r".*\.out", name):
+            file = files.setdefault(base(path), File())
+            file.out = path
+
+    # Quick sanity-check
+    for name, file in sorted(files.items()):
+        assert file.path is not None
+        if file.out is not None:
+            assert not file.inputs
+        if file.inputs:
+            assert not file.out
+        for i in file.inputs.values():
+            assert i.path is not None
+
+    return files
+
+def run_once(i: str, o: Optional[str]) -> float:
+    t1 = time.time()
+    result = subprocess.run(["./a.out"], input=i,
+            text=True, capture_output=CAPTURE_OUTPUT, check=True)
+    t2 = time.time()
+    if o is not None:
+        assert o == result.stdout
+    return t2 - t1
+
+def run(i: Optional[Path], o: Optional[Path]) -> Dict[str, Any]:
+    istr: str
+    if i is None:
+        istr = ""
+    else:
+        with open(i) as f:
+            istr = f.read()
+
+    ostr: Optional[str]
+    if o is None:
+        ostr = None
+    else:
+        with open(o) as f:
+            ostr = f.read()
+
+    values = []
+
+    t0 = time.time()
+    for _ in range(ITERATIONS_PER_BENCH):
+        try:
+            values.append(run_once(istr, ostr))
+        except Exception as e:
+            return {"error": str(e)}
+        if time.time() - t0 > TIME_PER_BENCH:
+            break
+
+    return {"unit": "s", "interpretation": "LESS_IS_BETTER", "values": values}
+
+def bench(result: Dict[str, Any], testrepo: Path, name: str, file: File):
+    # Produces a.out in current directory
+    eprint(f"Building {name}")
+    assert file.path is not None
+    subprocess.run([testrepo / "run", file.path],
+        capture_output=CAPTURE_OUTPUT, check=True)
+
+    if file.inputs:
+        for n, i in file.inputs.items():
+            eprint(f"Running input {n} for {name}")
+            result[f"{name}.{n}"] = run(i.path, i.out)
+    else:
+        eprint(f"Running {name}")
+        result[name] = run(None, file.out)
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("testrepo", type=Path)
+    args = parser.parse_args()
+
+    eprint("Running compiler build script")
+    subprocess.run([args.testrepo / "build"],
+        capture_output=CAPTURE_OUTPUT, check=True)
+
+    result = {"small": {}, "big": {}}
+
+    small = load_files(OWN_DIR / "exec")
+    for name, file in sorted(small.items()):
+        bench(result["small"], args.testrepo, name, file)
+
+    big = load_files(OWN_DIR / "exec" / "big")
+    for name, file in sorted(big.items()):
+        bench(result["big"], args.testrepo, name, file)
+
+    print(json.dumps(result))
+
+if __name__ == "__main__":
+    main()
