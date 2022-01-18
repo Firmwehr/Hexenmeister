@@ -76,13 +76,19 @@ def load_files(at: Path) -> Dict[str, File]:
 
     return files
 
+@dataclass
+class InvalidOutputException(Exception):
+    required: str
+    actual: str
+
 def run_once(i: str, o: Optional[str]) -> float:
     t1 = time.time()
     result = subprocess.run(["./a.out"], input=i,
             text=True, capture_output=CAPTURE_OUTPUT, check=True)
     t2 = time.time()
     if o is not None:
-        assert o == result.stdout, "incorrect output"
+        if o != result.stdout:
+            raise InvalidOutputException(o, result.stdout)
     return t2 - t1
 
 def run(i: Optional[Path], o: Optional[Path]) -> Dict[str, Any]:
@@ -106,6 +112,8 @@ def run(i: Optional[Path], o: Optional[Path]) -> Dict[str, Any]:
     for _ in range(ITERATIONS_PER_BENCH):
         try:
             values.append(run_once(istr, ostr))
+        except InvalidOutputException as e:
+            return {"error": f"Invalid output\n\nRequired:\n{e.required}\n\nActual:\n{e.actual}"}
         except Exception:
             return {"error": f"Something went wrong during execution:\n{traceback.format_exc()}"}
         if time.time() - t0 > TIME_PER_BENCH:
