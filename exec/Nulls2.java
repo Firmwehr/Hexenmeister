@@ -1,7 +1,7 @@
 class Nulls2 {
 
     public static void main(String[] args) {
-        Nulls2[] t = new Nulls2[2];    /* Einträge haben beim Laden die Scale 0 */
+        Nulls2[] t = new Nulls2[2];    /* Eintraege haben beim Laden die Scale 0 */
 
         t[0] = new Nulls2();
 
